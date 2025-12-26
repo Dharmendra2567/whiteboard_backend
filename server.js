@@ -9,6 +9,7 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
 const httpServer = createServer(app);
+const registerPenTabletHandlers = require("./penTablet.socket");
 
 //middleware
 app.use(morgan("dev"));
@@ -84,6 +85,9 @@ io.on("connection", (socket) => {
     socket.roomId = roomId;
 
     console.log(`[JOIN] ${role} joined room ${roomId}`);
+
+    // 👇 register pen tablet logic
+  registerPenTabletHandlers(io, socket);
 
     // ---- Presence ----
     if (socket.role === "tutor") {
