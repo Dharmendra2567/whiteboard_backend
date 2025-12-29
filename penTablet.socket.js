@@ -14,11 +14,13 @@ module.exports = function registerPenTabletHandlers(io, socket) {
       penStateMap.set(roomId, []);
     }
 
-    penStateMap.get(roomId).push(stroke);
+    const state =penStateMap.get(roomId).push(stroke);
 
     // forward to all students in room (except sender)
+    
     socket.to(roomId).emit("pen-stroke", stroke);
   });
+  
 
   /**
    * Sync strokes when student joins

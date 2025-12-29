@@ -35,6 +35,7 @@ const io = new Server(httpServer, {
 
 const boardState = new Map();
 const roomPresence = new Map();
+const roomAccess = {};
 
 io.on("connection", (socket) => {
   try {
@@ -46,6 +47,9 @@ io.on("connection", (socket) => {
 
     // tutor granted access to student
     socket.on("access-response", ({ studentId, status }) => {
+      if(socket.role !== "tutor") return;
+      roomAccess[roomId][studentId] = status === "Approved";
+
       io.to(studentId).emit("access-response", { status });
     });
 
@@ -55,9 +59,9 @@ io.on("connection", (socket) => {
     if (role === "tutor") {
       const presence = roomPresence.get(roomId);
       // send tutor status when student join
-  socket.emit("tutor-status", {
-    online: !!presence?.tutorOnline,
-  });
+      socket.emit("tutor-status", {
+        online: !!presence?.tutorOnline,
+      });
 
       if (presence?.tutorOnline) {
         // Tutor already connected
@@ -83,11 +87,14 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     socket.role = role;
     socket.roomId = roomId;
+    if (!roomAccess[roomId]) {
+      roomAccess[roomId] = {};
+    }
 
     console.log(`[JOIN] ${role} joined room ${roomId}`);
 
     // 👇 register pen tablet logic
-  registerPenTabletHandlers(io, socket);
+    // registerPenTabletHandlers(io, socket);
 
     // ---- Presence ----
     if (socket.role === "tutor") {
@@ -96,9 +103,9 @@ io.on("connection", (socket) => {
         lastSeen: Date.now(),
       });
 
-        socket.to(socket.roomId).emit("tutor-status", {
-    online: true,
-  });
+      socket.to(socket.roomId).emit("tutor-status", {
+        online: true,
+      });
     }
 
     // LOG MAP STATE ON JOIN
@@ -111,12 +118,19 @@ io.on("connection", (socket) => {
       socket.emit("whiteboard-sync", state);
     }
 
+    //send stroke data on join
+    // const stroke = boardState.get(socket.roomId);
+    // if (stroke && stroke.length > 0) {
+    //   socket.emit("whiteboard-init", stroke);
+    // }
+
+
     socket.on("whiteboard-update", (payload) => {
       console.log(
         `[WHITEBOARD UPDATE RECEIVED] from ${socket.role} in room ${socket.roomId}`
       );
 
-      if (socket.role !== "tutor") return;
+      if (socket.role !== "tutor" || socket.role === "student" && !roomAccess[socket.roomId]?.[socket.id]) return;
 
       //  MUST NOT BE COMMENTED
       boardState.set(socket.roomId, payload);
@@ -128,6 +142,25 @@ io.on("connection", (socket) => {
       socket.to(socket.roomId).emit("whiteboard-sync", payload);
     });
 
+    //getting pentab stroke data
+    // socket.on("whiteboard-update", ({ roomId, stroke }) => {
+    //   if (socket.role !== "tutor") return;
+    //   if (!roomId || !stroke) return;
+
+    //   if (!boardState.has(roomId)) {
+    //     boardState.set(roomId, []);
+    //   }
+
+    //   boardState.get(roomId).push(stroke);
+
+    //   console.log(
+    //     `[MAP UPDATED] room=${socket.roomId}, size=${boardState.size}`
+    //   );
+
+    //   socket.to(roomId).emit("whiteboard-sync", stroke);
+    // });
+
+
     //send tutor-status on disconnect
     socket.on("disconnect", () => {
       if (socket.role === "tutor") {
@@ -135,6 +168,10 @@ io.on("connection", (socket) => {
           tutorOnline: false,
           lastSeen: Date.now(),
         });
+
+        if(roomAccess[socket.roomId]) {
+          delete roomAccess[roomId][socket.id];
+        }
 
         socket.to(socket.roomId).emit("tutor-status", {
           online: false,
