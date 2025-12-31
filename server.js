@@ -15,8 +15,17 @@ const registerPenTabletHandlers = require("./penTablet.socket");
 app.use(morgan("dev"));
 
 
+// app.use(cors({
+//   origin: "*",
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+// }));
+
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [
+    "http://localhost:5173",
+    "https://whiteboard-frontend-psi.vercel.app"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -47,8 +56,8 @@ io.on("connection", (socket) => {
 
     // tutor granted access to student
     socket.on("access-response", ({ studentId, status }) => {
-      if(socket.role !== "tutor") return;
-      roomAccess[roomId][studentId] = status === "Approved";
+      if (socket.role !== "tutor") return;
+      roomAccess[roomId][studentId] = status === "approved";
 
       io.to(studentId).emit("access-response", { status });
     });
@@ -92,10 +101,6 @@ io.on("connection", (socket) => {
     }
 
     console.log(`[JOIN] ${role} joined room ${roomId}`);
-
-    // 👇 register pen tablet logic
-    // registerPenTabletHandlers(io, socket);
-
     // ---- Presence ----
     if (socket.role === "tutor") {
       roomPresence.set(socket.roomId, {
@@ -130,10 +135,18 @@ io.on("connection", (socket) => {
         `[WHITEBOARD UPDATE RECEIVED] from ${socket.role} in room ${socket.roomId}`
       );
 
-      if (socket.role !== "tutor" || socket.role === "student" && !roomAccess[socket.roomId]?.[socket.id]) return;
+      // if (socket.role !== "tutor" || (socket.role === "student" && !roomAccess[socket.roomId]?.[socket.id])) return;
 
-      //  MUST NOT BE COMMENTED
+      const isTutor = socket.role === "tutor";
+      const isAuthorizedStudent =
+        socket.role === "student" &&
+        roomAccess[socket.roomId]?.[socket.id];
+
+      if (!isTutor && !isAuthorizedStudent) return;
+
+      console.log("student data is about to set in boardState map");
       boardState.set(socket.roomId, payload);
+      console.log("student data has been set in boardState map");
 
       console.log(
         `[MAP UPDATED] room=${socket.roomId}, size=${boardState.size}`
@@ -169,7 +182,7 @@ io.on("connection", (socket) => {
           lastSeen: Date.now(),
         });
 
-        if(roomAccess[socket.roomId]) {
+        if (roomAccess[socket.roomId]) {
           delete roomAccess[roomId][socket.id];
         }
 
