@@ -1,6 +1,8 @@
 const Room = require("../models/Room");
 const { v4: uuidv4 } = require("uuid");
 
+const FRONTEND_URL = process.env.frontend_url || "http://localhost:5173";
+
 /**
  * Create room + tutor link
  */
@@ -29,8 +31,7 @@ exports.generateTutorLink = async (req, res) => {
       permissions,
     });
 
-    const baseUrl = process.env.frontend_url || process.env.FRONTEND_URL || "http://localhost:5173";
-    const url = `${baseUrl}/room/${roomId}?role=tutor`;
+    const url = `${FRONTEND_URL}/room/${roomId}?role=tutor`;
 
     res.status(201).json({ url,time:Date.now(),roomId ,tutorId});
   } catch (err) {
@@ -54,8 +55,7 @@ exports.generateStudentLink = async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-    const baseUrl = process.env.frontend_url || process.env.FRONTEND_URL || "http://localhost:5173";
-    const url = `${baseUrl}/room/${exitRoomId.roomId}?role=student`;
+    const url = `${FRONTEND_URL}/room/${exitRoomId.roomId}?role=student`;
 
     res.json({ url });
   } catch (err) {
