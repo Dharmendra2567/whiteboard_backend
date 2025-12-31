@@ -1,7 +1,7 @@
 const Room = require("../models/Room");
 const { v4: uuidv4 } = require("uuid");
 
-const FRONTEND_URL = process.env.frontend_url || "http://localhost:5173";
+const FRONTEND_URL = process.env.frontend_url || "https://whiteboard-frontend-psi.vercel.app";
 
 /**
  * Create room + tutor link
