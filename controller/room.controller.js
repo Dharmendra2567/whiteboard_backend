@@ -29,7 +29,8 @@ exports.generateTutorLink = async (req, res) => {
       permissions,
     });
 
-    const url = `http://localhost:5173/room/${roomId}?role=tutor`;
+    const baseUrl = process.env.frontend_url || process.env.FRONTEND_URL || "http://localhost:5173";
+    const url = `${baseUrl}/room/${roomId}?role=tutor`;
 
     res.status(201).json({ url,time:Date.now(),roomId ,tutorId});
   } catch (err) {
@@ -53,7 +54,8 @@ exports.generateStudentLink = async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-    const url = `http://localhost:5173/room/${exitRoomId.roomId}?role=student`;
+    const baseUrl = process.env.frontend_url || process.env.FRONTEND_URL || "http://localhost:5173";
+    const url = `${baseUrl}/room/${exitRoomId.roomId}?role=student`;
 
     res.json({ url });
   } catch (err) {
