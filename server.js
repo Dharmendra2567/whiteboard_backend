@@ -24,7 +24,7 @@ app.use(morgan("dev"));
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://whiteboard-frontend-plum.vercel.app/"
+    "https://whiteboard-frontend-plum.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
